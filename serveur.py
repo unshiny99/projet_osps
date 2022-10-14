@@ -91,18 +91,6 @@ def serveurSecondaire():
         fifo2.write(f"Message du process secondaire : {i}!\n")
         fifo2.flush()
 
-    '''
-    newpid = os.fork()
-    if newpid < 0:
-        print("fork() impossible")
-        os.abort()
-    if newpid == 0:
-        # exécution d'une commande fille pour écrire sur la sortie standard
-        os.execlp("ipcs", "ipcs", "-m")
-    else:
-        os.wait()
-    '''
-
 # Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
 # (le nom peut être généré automatiquement, mais l'avantage de le fixer est que les n processus
 # qui accèdent au même segment ont "juste besoin de connaitre ce nom pour y accéder")
@@ -142,20 +130,7 @@ if(os.path.exists(pathtube2)):
 os.mkfifo(pathtube1, 0o0600)
 os.mkfifo(pathtube2, 0o0600)
 
-'''
-# création processus fils
-newpid = os.fork()
-if newpid < 0:
-    print("fork() impossible")
-    os.abort()
-if newpid == 0: # processus fils
-    # appel du serveur secondaire
-    serveurSecondaire()
-else: # processus courant 
-    #os.wait()
-    serveurPrincipal()
-'''
-
+print("Début du chien de garde (watchdog)")
 # création des processus
 p1 = multiprocessing.Process(target=serveurPrincipal)
 p2 = multiprocessing.Process(target=serveurSecondaire)
@@ -168,4 +143,4 @@ p2.start()
 p1.join()
 p2.join()
 
-print("Fin des processus")
+print("Fin du chien de garde (watchdog)")
