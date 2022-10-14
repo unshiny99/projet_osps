@@ -8,6 +8,7 @@
 #
 import multiprocessing
 import os, sys
+import platform
 from multiprocessing import shared_memory, process
 
 _name = '012345'
@@ -108,41 +109,44 @@ def watchdog():
 
     print("Fin du chien de garde (watchdog)")
 
-# Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
-try:
-    shm_segment1 = shared_memory.SharedMemory(name=_name, create=True, size=_size)
-except FileExistsError:
-    shm_segment1 = shared_memory.SharedMemory(name=_name, create=False, size=_size)
-print ('Nom du segment mémoire partagée :', shm_segment1.name)
+if(platform.system() == 'Linux'):
+    # Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
+    try:
+        shm_segment1 = shared_memory.SharedMemory(name=_name, create=True, size=_size)
+    except FileExistsError:
+        shm_segment1 = shared_memory.SharedMemory(name=_name, create=False, size=_size)
+    print ('Nom du segment mémoire partagée :', shm_segment1.name)
 
-# Accès + écriture de données via le premier accès au segment mémoire partagée
-print ('Taille du segment mémoire partagée en octets via premier accès :', len(shm_segment1.buf))
-shm_segment1.buf[:] = bytearray([74, 73, 72, 71, 70, 69, 68, 67, 66, 65])
+    # Accès + écriture de données via le premier accès au segment mémoire partagée
+    print ('Taille du segment mémoire partagée en octets via premier accès :', len(shm_segment1.buf))
+    shm_segment1.buf[:_size] = bytearray([74, 73, 72, 71, 70, 69, 68, 67, 66, 65])
 
-# Simuler l'attachement d'un second processus au même segment mémoire partagée
-# en utilisant le même nom que précédemment :
-shm_segment2 = shared_memory.SharedMemory(shm_segment1.name)
+    # Simuler l'attachement d'un second processus au même segment mémoire partagée
+    # en utilisant le même nom que précédemment :
+    shm_segment2 = shared_memory.SharedMemory(shm_segment1.name)
 
-# Accès + écriture de données via le second accès au MÊME segment mémoire partagée
-print ('Taille du segment mémoire partagée en octets via second accès :', len(shm_segment2.buf))
-print ('Contenu du segment mémoire partagée en octets via second accès :', bytes(shm_segment2.buf))
+    # Accès + écriture de données via le second accès au MÊME segment mémoire partagée
+    print ('Taille du segment mémoire partagée en octets via second accès :', len(shm_segment2.buf))
+    print ('Contenu du segment mémoire partagée en octets via second accès :', bytes(shm_segment2.buf))
+    
+    print ('Création des tubes...')
 
-print ('Création des tubes...')
+    #chemin de destination pour les tubes nommés
+    pathtube1 = "/tmp/tubeNomme1.fifo"
+    pathtube2 = "/tmp/tubeNomme2.fifo"
 
-#chemin de destination pour les tubes nommés
-pathtube1 = "/tmp/tubeNomme1.fifo"
-pathtube2 = "/tmp/tubeNomme2.fifo"
+    # suppression des tubes nommés s'ils existent encore pour diverses raisons (ex: crash inattendu de l'application)
+    if(os.path.exists(pathtube1)):
+        os.unlink(pathtube1)
 
-# suppression des tubes nommés s'ils existent encore pour diverses raisons (ex: crash inattendu de l'application)
-if(os.path.exists(pathtube1)):
-    os.unlink(pathtube1)
+    if(os.path.exists(pathtube2)):
+        os.unlink(pathtube2)
 
-if(os.path.exists(pathtube2)):
-    os.unlink(pathtube2)
+    # création concrète des tubes nommés
+    # Note : "0o" introduit un nombre en octal
+    os.mkfifo(pathtube1, 0o0600)
+    os.mkfifo(pathtube2, 0o0600)
 
-# création concrète des tubes nommés
-# Note : "0o" introduit un nombre en octal
-os.mkfifo(pathtube1, 0o0600)
-os.mkfifo(pathtube2, 0o0600)
-
-watchdog()
+    watchdog()
+else:
+    print(platform.system() + " n'est pas supporté :/")
