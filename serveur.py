@@ -2,8 +2,9 @@
 # _*_ coding: utf8 _*_
 #
 # Création d'un segment mémoire partagée et invocation du serveur secondaire
+# Fonctionnalité basique du watchdog
 #
-# Version 11/10/2022
+# Version 14/10/2022
 #
 import multiprocessing
 import os, sys
@@ -91,9 +92,23 @@ def serveurSecondaire():
         fifo2.write(f"Message du process secondaire : {i}!\n")
         fifo2.flush()
 
+def watchdog():
+    print("Début du chien de garde (watchdog)")
+    # création des processus
+    p1 = multiprocessing.Process(target=serveurPrincipal)
+    p2 = multiprocessing.Process(target=serveurSecondaire)
+
+    # démarrage processus
+    p1.start()
+    p2.start()
+
+    # attente conjointe processus
+    p1.join()
+    p2.join()
+
+    print("Fin du chien de garde (watchdog)")
+
 # Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
-# (le nom peut être généré automatiquement, mais l'avantage de le fixer est que les n processus
-# qui accèdent au même segment ont "juste besoin de connaitre ce nom pour y accéder")
 try:
     shm_segment1 = shared_memory.SharedMemory(name=_name, create=True, size=_size)
 except FileExistsError:
@@ -114,12 +129,11 @@ print ('Contenu du segment mémoire partagée en octets via second accès :', by
 
 print ('Création des tubes...')
 
-# Ci-dessous "0o" introduit un nombre en octal
-
+#chemin de destination pour les tubes nommés
 pathtube1 = "/tmp/tubeNomme1.fifo"
 pathtube2 = "/tmp/tubeNomme2.fifo"
 
-# suppression des tubes nommés s'ils existent encore pour diverses raisons
+# suppression des tubes nommés s'ils existent encore pour diverses raisons (ex: crash inattendu de l'application)
 if(os.path.exists(pathtube1)):
     os.unlink(pathtube1)
 
@@ -127,20 +141,8 @@ if(os.path.exists(pathtube2)):
     os.unlink(pathtube2)
 
 # création concrète des tubes nommés
+# Note : "0o" introduit un nombre en octal
 os.mkfifo(pathtube1, 0o0600)
 os.mkfifo(pathtube2, 0o0600)
 
-print("Début du chien de garde (watchdog)")
-# création des processus
-p1 = multiprocessing.Process(target=serveurPrincipal)
-p2 = multiprocessing.Process(target=serveurSecondaire)
-
-# démarrage processus
-p1.start()
-p2.start()
-
-# attente conjointe processus
-p1.join()
-p2.join()
-
-print("Fin du chien de garde (watchdog)")
+watchdog()
