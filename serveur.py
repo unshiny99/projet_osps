@@ -31,7 +31,7 @@ def serveurPrincipal():
 
         # 32 caractères
         fifo1.write(f"Message du processus principal : {i}!\n")
-        fifo1.flush()
+        fifo1.flush() # vider le buffer
 
         print('Processus principal en attente de réception de messages...')
 
@@ -48,6 +48,7 @@ def serveurPrincipal():
     os.unlink(pathtube1)
     os.unlink(pathtube2)
 
+    # fermeture mémoire partagée et destruction objet
     shm_segment2.close()
     shm_segment1.close()
     shm_segment1.unlink()
@@ -91,11 +92,11 @@ def serveurSecondaire():
 
         # 32 caractères
         fifo2.write(f"Message du process secondaire : {i}!\n")
-        fifo2.flush()
+        fifo2.flush() # vider le buffer
 
 def watchdog():
     print("Début du chien de garde (watchdog)")
-    # création des processus
+    # création des processus en multiprocessing
     p1 = multiprocessing.Process(target=serveurPrincipal)
     p2 = multiprocessing.Process(target=serveurSecondaire)
 
@@ -109,6 +110,7 @@ def watchdog():
 
     print("Fin du chien de garde (watchdog)")
 
+# conçu pour les distributions linux
 if(platform.system() == 'Linux'):
     # Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
     try:
@@ -135,7 +137,8 @@ if(platform.system() == 'Linux'):
     pathtube1 = "/tmp/tubeNomme1.fifo"
     pathtube2 = "/tmp/tubeNomme2.fifo"
 
-    # suppression des tubes nommés s'ils existent encore pour diverses raisons (ex: crash inattendu de l'application)
+    # suppression des tubes nommés s'ils existent encore pour diverses raisons 
+    # (ex: crash inattendu de l'application)
     if(os.path.exists(pathtube1)):
         os.unlink(pathtube1)
 
@@ -149,4 +152,4 @@ if(platform.system() == 'Linux'):
 
     watchdog()
 else:
-    print(platform.system() + " n'est pas supporté :/")
+    print(platform.system() + " n'est pas (encore) supporté :/")
