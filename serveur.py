@@ -38,6 +38,9 @@ def serveurPrincipal():
         line = fifo2.readline()
         print("Message recu : " + line)
 
+    while True:
+        continue
+
     print('Fermeture du tube1...')
     fifo1.close()
     print('Fermeture du tube2...')
@@ -94,6 +97,9 @@ def serveurSecondaire():
         fifo2.write(f"Message du process secondaire : {i}!\n")
         fifo2.flush() # vider le buffer
 
+    while True:
+        continue
+
 def watchdog():
     print("Début du chien de garde (watchdog)")
     # création des processus en multiprocessing
@@ -104,13 +110,17 @@ def watchdog():
     p1.start()
     p2.start()
 
+    print("pid du watchdog : " + str(os.getpid()))
+    print("pid de SP : " + str(p1.pid))
+    print("pid de SS : " + str(p2.pid))
+
     # attente conjointe processus
     p1.join()
     p2.join()
 
     print("Fin du chien de garde (watchdog)")
 
-# conçu pour les distributions linux
+# programme conçu pour les distributions linux
 if(platform.system() == 'Linux'):
     # Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
     try:
