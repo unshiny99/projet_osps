@@ -9,10 +9,19 @@
 import multiprocessing
 import os, sys
 import platform
+import time
 from multiprocessing import shared_memory, process
+from threading import Timer
+
+# classe utilisée pour le répétage du watchdog
+class RepeatTimer(Timer):
+    def run(self):
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
 
 _name = '012345'
 _size = 10
+processes = {}
 
 def serveurPrincipal():
     print('Ouverture du tube1 en écriture... (serveur P)')
@@ -100,25 +109,34 @@ def serveurSecondaire():
     while True:
         continue
 
+# chien de garde qui permet de vérifier l'état des processus fils
 def watchdog():
-    print("Début du chien de garde (watchdog)")
-    # création des processus en multiprocessing
-    p1 = multiprocessing.Process(target=serveurPrincipal)
-    p2 = multiprocessing.Process(target=serveurSecondaire)
-
-    # démarrage processus
-    p1.start()
-    p2.start()
+    #print("Début du chien de garde (watchdog)")
 
     print("pid du watchdog : " + str(os.getpid()))
-    print("pid de SP : " + str(p1.pid))
-    print("pid de SS : " + str(p2.pid))
+    print("pid de SP : " + str(processes[0].pid))
+    print("pid de SS : " + str(processes[1].pid))
+
+    print(processes[0].is_alive())
+    print(processes[0].exitcode)
+    print(processes[1].is_alive())
+    print(processes[1].exitcode)
+
+    # si SS est kill mais SP en vie, tenter de relancer SS
+    if(processes[0].is_alive() and not processes[1].is_alive()):
+        processes[1].kill()
+        print("Relancement du serveur secondaire")
+        processes[1] = multiprocessing.Process(target=serveurSecondaire)
+        processes[1].start()
+        #p2 = p2b
+
+    # TODO : si SP est kill mais SS en vie, tuer SP (et le watchdog)
 
     # attente conjointe processus
-    p1.join()
-    p2.join()
+    processes[0].join(1)
+    processes[1].join(1)
 
-    print("Fin du chien de garde (watchdog)")
+    #print("Fin du chien de garde (watchdog)")
 
 # programme conçu pour les distributions linux
 if(platform.system() == 'Linux'):
@@ -160,6 +178,20 @@ if(platform.system() == 'Linux'):
     os.mkfifo(pathtube1, 0o0600)
     os.mkfifo(pathtube2, 0o0600)
 
-    watchdog()
+    # création des processus en multiprocessing
+    p1 = multiprocessing.Process(target=serveurPrincipal)
+    p2 = multiprocessing.Process(target=serveurSecondaire)
+    processes[0] = p1
+    processes[1] = p2
+
+    # démarrage processus
+    processes[0].start()
+    processes[1].start()
+
+    timer = RepeatTimer(1, watchdog) #  , args=("bar",)
+    timer.start()
+    time.sleep(2)
+
+    # watchdog()
 else:
     print(platform.system() + " n'est pas (encore) supporté :/")
