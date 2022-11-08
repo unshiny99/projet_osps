@@ -8,7 +8,7 @@
 # Réalisé par Maxime Frémeaux & Khalil Bedjaoui
 #
 import multiprocessing
-import os, sys
+import os
 import platform
 import time
 from multiprocessing import shared_memory, process
@@ -130,6 +130,7 @@ def watchdog():
 
     # si SP est kill mais SS en vie, tuer SP -- et le watchdog
     # tue le processus courant (et son fils serveur secondaire) et en relance un (ainsi que le fils)
+    # REMARQUE : le processus du serveur secondaire du SP éteint est en mode Zombie et non complètement détruit
     if(not processes[0].is_alive() and processes[1].is_alive()):
         print("Relancement du serveur principal")
         processes[0] = multiprocessing.Process(target=serveurPrincipal)
@@ -169,11 +170,10 @@ if(platform.system() == 'Linux'):
     pathtube1 = "/tmp/tubeNomme1.fifo"
     pathtube2 = "/tmp/tubeNomme2.fifo"
 
-    # suppression des tubes nommés s'ils existent encore pour diverses raisons 
+    # suppression prélable des tubes nommés s'ils existent encore pour diverses raisons 
     # (ex: crash inattendu de l'application)
     if(os.path.exists(pathtube1)):
         os.unlink(pathtube1)
-
     if(os.path.exists(pathtube2)):
         os.unlink(pathtube2)
 
@@ -183,17 +183,18 @@ if(platform.system() == 'Linux'):
     os.mkfifo(pathtube1, 0o0600)
     os.mkfifo(pathtube2, 0o0600)
 
-    # création des processus en multiprocessing
+    # création des processus en multiprocessing (initialisation)
     p1 = multiprocessing.Process(target=serveurPrincipal)
     p2 = multiprocessing.Process(target=serveurSecondaire)
     processes[0] = p1
     processes[1] = p2
 
-    # démarrage processus serveur
+    # démarrage des processus serveur
     processes[0].start()
     processes[1].start()
 
     # lancement boucle watchdog
+    # vérifie toutes les 2 secondes l'état des processus fils (SP et SS)
     timer = RepeatTimer(1, watchdog) #  , args=("bar",) # si besoin d'argument à passer
     timer.start()
     time.sleep(2)
