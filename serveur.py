@@ -2,9 +2,10 @@
 # _*_ coding: utf8 _*_
 #
 # Création d'un segment mémoire partagée et invocation du serveur secondaire
-# Fonctionnalité basique du watchdog
+# Fonctionnalité basique du watchdog (surveillance d'état des serveurs conjoints)
 #
-# Version 14/10/2022
+# Version 08/11/2022
+# Réalisé par Maxime Frémeaux & Khalil Bedjaoui
 #
 import multiprocessing
 import os, sys
@@ -13,12 +14,13 @@ import time
 from multiprocessing import shared_memory, process
 from threading import Timer
 
-# classe utilisée pour le répétage du watchdog
+# classe utilisée pour la boucle de répétition du watchdog
 class RepeatTimer(Timer):
     def run(self):
         while not self.finished.wait(self.interval):
             self.function(*self.args, **self.kwargs)
 
+# déclaration variables et initialisation
 _name = '012345'
 _size = 10
 processes = {}
@@ -111,40 +113,44 @@ def serveurSecondaire():
 
 # chien de garde qui permet de vérifier l'état des processus fils
 def watchdog():
-    #print("Début du chien de garde (watchdog)")
-
     print("pid du watchdog : " + str(os.getpid()))
     print("pid de SP : " + str(processes[0].pid))
     print("pid de SS : " + str(processes[1].pid))
 
-    print(processes[0].is_alive())
-    print(processes[0].exitcode)
-    print(processes[1].is_alive())
-    print(processes[1].exitcode)
+    # print(processes[0].is_alive())
+    # print(processes[0].exitcode)
+    # print(processes[1].is_alive())
+    # print(processes[1].exitcode)
 
     # si SS est kill mais SP en vie, tenter de relancer SS
     if(processes[0].is_alive() and not processes[1].is_alive()):
-        processes[1].kill()
         print("Relancement du serveur secondaire")
         processes[1] = multiprocessing.Process(target=serveurSecondaire)
         processes[1].start()
-        #p2 = p2b
 
-    # TODO : si SP est kill mais SS en vie, tuer SP (et le watchdog)
+    # si SP est kill mais SS en vie, tuer SP -- et le watchdog
+    # tue le processus courant (et son fils serveur secondaire) et en relance un (ainsi que le fils)
+    if(not processes[0].is_alive() and processes[1].is_alive()):
+        print("Relancement du serveur principal")
+        processes[0] = multiprocessing.Process(target=serveurPrincipal)
+        processes[0].start()
+        print("Relancement du serveur secondaire")
+        processes[1].kill()
+        processes[1] = multiprocessing.Process(target=serveurSecondaire)
+        processes[1].start()
 
     # attente conjointe processus
     processes[0].join(1)
     processes[1].join(1)
 
-    #print("Fin du chien de garde (watchdog)")
-
-# programme conçu pour les distributions linux
+# programme conçu pour les distributions Linux
 if(platform.system() == 'Linux'):
     # Création du segment mémoire partagée + accès à son "nom" (utilisé pour générer une clef)
     try:
         shm_segment1 = shared_memory.SharedMemory(name=_name, create=True, size=_size)
     except FileExistsError:
         shm_segment1 = shared_memory.SharedMemory(name=_name, create=False, size=_size)
+
     print ('Nom du segment mémoire partagée :', shm_segment1.name)
 
     # Accès + écriture de données via le premier accès au segment mémoire partagée
@@ -152,16 +158,14 @@ if(platform.system() == 'Linux'):
     shm_segment1.buf[:_size] = bytearray([74, 73, 72, 71, 70, 69, 68, 67, 66, 65])
 
     # Simuler l'attachement d'un second processus au même segment mémoire partagée
-    # en utilisant le même nom que précédemment :
+    # en utilisant le même nom que précédemment
     shm_segment2 = shared_memory.SharedMemory(shm_segment1.name)
 
     # Accès + écriture de données via le second accès au MÊME segment mémoire partagée
     print ('Taille du segment mémoire partagée en octets via second accès :', len(shm_segment2.buf))
     print ('Contenu du segment mémoire partagée en octets via second accès :', bytes(shm_segment2.buf))
-    
-    print ('Création des tubes...')
 
-    #chemin de destination pour les tubes nommés
+    # chemin de destination pour les tubes nommés
     pathtube1 = "/tmp/tubeNomme1.fifo"
     pathtube2 = "/tmp/tubeNomme2.fifo"
 
@@ -173,6 +177,7 @@ if(platform.system() == 'Linux'):
     if(os.path.exists(pathtube2)):
         os.unlink(pathtube2)
 
+    print ('Création des tubes...')
     # création concrète des tubes nommés
     # Note : "0o" introduit un nombre en octal
     os.mkfifo(pathtube1, 0o0600)
@@ -184,14 +189,13 @@ if(platform.system() == 'Linux'):
     processes[0] = p1
     processes[1] = p2
 
-    # démarrage processus
+    # démarrage processus serveur
     processes[0].start()
     processes[1].start()
 
-    timer = RepeatTimer(1, watchdog) #  , args=("bar",)
+    # lancement boucle watchdog
+    timer = RepeatTimer(1, watchdog) #  , args=("bar",) # si besoin d'argument à passer
     timer.start()
     time.sleep(2)
-
-    # watchdog()
 else:
     print(platform.system() + " n'est pas (encore) supporté :/")
