@@ -1,6 +1,7 @@
-# projet_osps
-Projet de système et programmation sécurisée \
-Langage : Python
+# Projet de système et programmation sécurisée (OSPS)
+Langage utilisé : Python
+
+### <b> Remarque préalable : </b> le code a été commenté afin d'expliquer le principe de chaque instruction
 
 ## Etat d'avancement
 - Constitution des 2 tubes nommés (SP vers SS et SS vers SP)
