@@ -11,9 +11,8 @@
 import multiprocessing
 import os
 import platform
-import psutil
 import time
-from multiprocessing import shared_memory, process
+from multiprocessing import shared_memory
 from threading import Timer
 
 # classe utilisée pour la boucle de répétition du watchdog
@@ -195,7 +194,7 @@ if(platform.system() == 'Linux'):
     # tentative ajout option démon pour les tuer si le père est tué (ne fonctionnait pas)
     # processes[0].daemon = True
     # processes[1].daemon = True
-    
+
     # démarrage des processus serveur
     processes[0].start()
     processes[1].start()
