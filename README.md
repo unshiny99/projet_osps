@@ -35,6 +35,10 @@ Utiliser la commande `./serveur.py` afin de lancer le processus principal (ou `p
         <td>Gestion d'un arrêt brutal du watchdog</td>
         <td>L'interruption du processus principal est gérée par l'exception `KeyBoardInterrupt` mais pas lorsqu'on tue le processus avec `kill`</td>
     </tr>
+    <tr>
+        <td>Gestion d'un client</td>
+        <td>Ajouter la possibilité d'avoir un client souhaitant communiquer avec un des serveurs</td>
+    </tr>
 </table>
 
 ## Bibliographie
