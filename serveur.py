@@ -5,7 +5,7 @@
 # Fonctionnalité basique du watchdog (surveillance d'état des serveurs conjoints)
 # Programme conçu pour les distributions Linux
 #
-# Version 14/11/2022
+# Version 15/11/2022
 # Réalisé par Maxime Frémeaux & Khalil Bedjaoui
 #
 import multiprocessing
@@ -41,12 +41,13 @@ def serveurPrincipal():
 
         print('Écriture dans le tube1...')
 
-        # 32 caractères
+        # taille buffer : 32 caractères
         fifo1.write(f"Message du processus principal : {i}!\n")
-        fifo1.flush() # vider le buffer
+        fifo1.flush() # vider le buffer (cas < 32 caractères)
 
         print('Processus principal en attente de réception de messages...')
 
+        # on lit la ligne et on l'affiche
         line = fifo2.readline()
         print("Message recu : " + line)
 
@@ -102,14 +103,15 @@ def serveurSecondaire():
 
         print('Processus secondaire en attente de réception de messages...')
 
+        # on lit la ligne et on l'affiche
         line = fifo1.readline()
         print("Message recu : " + line)
 
         print('Écriture dans le tube2...')
 
-        # 32 caractères
+        # taille buffer : 32 caractères
         fifo2.write(f"Message du process secondaire : {i}!\n")
-        fifo2.flush() # vider le buffer
+        fifo2.flush() # vider le buffer (cas < 32 caractères)
 
     # boucle infinie pour ne pas fermer les tubes permettant la communication conjointe des serveurs
     while True:
