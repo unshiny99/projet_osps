@@ -12,8 +12,9 @@ Langage utilisé : Python (version 3)
 
 ## Principe de fonctionnement
 Le watchdog est le processus principal, parent de tous les autres. Il lance le serveur principal, ainsi que le serveur secondaire. \
-Il vérifie toutes les 2 secondes si ses processus fils sont en vie. Si ce n'est pas le cas, il tente de les relancer. Il affiche aussi les 3 identifiants (ou PID) des processus, respectivement du watchdog, du SP et du SS, à intervalle régulier.
-Les 2 serveurs peuvent communiquer grâce aux tubes nommés, pour savoir si l'un des 2 est en train d'utiliser la mémoire partagée par exemple.
+Il vérifie toutes les 2 secondes si ses processus fils sont en vie. Si ce n'est pas le cas, il tente de les relancer. Il affiche aussi les 3 identifiants (ou PID) des processus, respectivement du watchdog, du SP et du SS, à intervalle régulier. \
+
+Les 2 serveurs peuvent communiquer grâce aux tubes nommés, pour savoir si l'un des 2 est en train d'utiliser la mémoire partagée par exemple. Ces derniers sont créés dans le dossier `/tmp/` de la machine utilisée (et portent l'extension `.fifo`) \
 La mémoire partagée est commune aux serveurs. Elle permet d'avoir des informations centralisées.
 
 ## Exécution du programme
@@ -47,4 +48,5 @@ SS : Serveur Secondaire \
 Watchdog : chien de garde/surveillance
 
 ## Documentation externe
-Librairie multiprocessing : [docs.python.org](https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process.daemon)
+Librairie mémoire partagée : [docs.python.org/shared_memory](https://docs.python.org/3.8/library/multiprocessing.shared_memory.html) \
+Librairie multiprocessing : [docs.python.org/multiprocessing](https://docs.python.org/3/library/multiprocessing.html)
